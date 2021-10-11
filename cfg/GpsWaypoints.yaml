@@ -1,0 +1,22 @@
+gps_waypoints_server_node:
+  max_start_str: 1054
+  min_start_str: 986
+  str_adj: 100
+  skid_adj: 80
+
+  max_start_thr: 1080
+  thr_adj: 74
+
+  goal_dist_thresh: 0.2
+  goal_ang_thresh: 1.0
+  x_track_error_start: 0.3
+
+  pid_hdg_out_thresh: 1.0
+  pid_x_out_thresh: 0.1
+
+  hdg_p: 1.0
+  hdg_i: 0.0
+  hdg_d: 1.0
+  cross_p: 1.0
+  cross_i: 0.0
+  cross_d: 1.0
