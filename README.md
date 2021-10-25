@@ -2,6 +2,16 @@
 
 This is an autonomous drive package for rover with jmoab-ros, please check [jmoab-ros repo here](https://github.com/rasheeddo/jmoab-ros).
 
+This package is designed to work side by side with jmoab-ros package to provide a feature of autonomous drive in many applications.
+
+It could run with the real actual robot with JMOAB and also in simulation world in Gazebo as Software In The Loop (SITL).
+
+![](images/diagram.jpeg)
+
+Currently, it supports an autonomous drive as following.
+
+- GPS Waypoints Navigation
+
 ## GPS Waypoints Navigation
 
 ![](images/gps_navigation.png)
