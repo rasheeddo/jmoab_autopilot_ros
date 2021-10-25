@@ -24,3 +24,5 @@ gps_waypoints_server_node:
   cross_p: 150.0
   cross_i: 10.0
   cross_d: 0.0
+
+  use_heartbeat: False
