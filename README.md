@@ -133,3 +133,27 @@ The paramters in here are same as `cfg/GpsWaypoints.yaml`, so once you satisfied
 ![](images/bad_hdg.png)
 
 
+## Greenhouse Navigation
+
+The greenhouse navigation is using only lidar and IMU to move around in the greenhouse.
+
+The navigation pattern is using the a step sequence below
+
+1. Wall-following: where the bot is using either left or right wall distance to measure how far from itself and try to keep the distance
+
+2. Lane-changing: where the bot is outside the lane and try to change to another lane
+
+3. Re-heading: when the bot arrived on the new lane, it will adjust the heading again
+
+4. Wall-following(2): this is similar as first step
+
+5. U-turning: where the bot `front_stop_dist` found some wall all of obstacle, it will turn around and count as one round completed.
+
+![](images/greenhouse_sim.png)
+
+The bot will follow this pattern forever, so for higher application you will need to check on `shelf_counter` inside the code, and stop whenever the last shelf of greenhouse got completed.
+
+The parameters are showing,
+
+![](images/greenhouse_rqt_reconfigure.png)
+

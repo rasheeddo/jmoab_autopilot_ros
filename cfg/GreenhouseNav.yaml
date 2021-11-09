@@ -1,0 +1,38 @@
+greenhouse_nav_server_node:
+  ## Laser scan
+  wall_scan_ang: 15
+  front_stop_dist: 1.2
+  right_dist_in_lane: 0.85
+  left_dist_in_lane: 0.6
+
+  ## Steering
+  max_start_str: 1024
+  min_start_str: 1024
+  str_mid: 1024
+  wf_str_adj: 90
+  lc_str_adj: 150
+  rh_str_adj: 90
+  ut_str_adj: 90
+
+  ## Throttle
+  wf_thr: 1105
+  lc_thr: 1144
+
+  ## PID 
+  wf_setpoint: 0.5
+  wf_p: 200.0
+  wf_i: 0.0
+  wf_d: 0.0
+
+  lc_setpoint: 0.75
+  lc_p: 200.0
+  lc_i: 0.0
+  lc_d: 0.0
+
+  rh_p: 5.0
+  rh_i: 0.0
+  rh_d: 0.0
+
+  ut_p: 5.0
+  ut_i: 0.0
+  ut_d: 0.0
