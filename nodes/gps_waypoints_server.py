@@ -14,7 +14,7 @@ def callback(config, level):
 	# rospy.loginfo("""Reconfigure Request: {int_param}, {double_param},{str_param}, {bool_param}""".format(**config))
 	
 	# rospy.loginfo("""Reconfigure Request: {p}, {i}, {d}""".format(**config))
-	# print(config)
+	print("Got new parameters")
 	return config
 
 # def get_args():

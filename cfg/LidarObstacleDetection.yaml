@@ -1,0 +1,7 @@
+lidar_obst_detect_server_node:
+  ## Laser scan
+  enable_scan: True
+  front_scan_angle: 30.0
+  front_scan_dist: 1.0
+  back_scan_angle: 30.0
+  back_scan_dist: 1.0
