@@ -42,6 +42,9 @@ class GPS_NAV(object):
 		self.atcart_mode_cmd_pub = rospy.Publisher("/atcart_mode_cmd", Int8, queue_size=10)
 		self.atcart_mode_cmd_msg = Int8()
 
+		self.jmoab_relay1_pub = rospy.Publisher("/jmoab_relay1", Bool, queue_size=10)
+		self.jmoab_relay1_msg = Bool()
+
 		################################ ROS Parameters #####################################
 		sv_node = "gps_waypoints_server_node"
 
@@ -89,6 +92,7 @@ class GPS_NAV(object):
 		self.speed_target_list = []
 		self.delay_target_list = []
 		self.sbus_throttle_target_list = []
+		self.relay_target_list = []
 		self.total_points = 0
 		self.target_wp = 0
 
@@ -100,9 +104,6 @@ class GPS_NAV(object):
 
 		########################### PID Parameters ##########################
 		## PID heading steering control
-		# self.kp = 0.85		# 15.0
-		# self.ki = 0.07
-		# self.kd = 0.0
 		self.setpoint_diff_hdg = 0.0
 
 		self.max_err = 100.0	#10.0	#2.0
@@ -112,12 +113,7 @@ class GPS_NAV(object):
 		self.pid_hdg.sample_time = 0.001
 		self.pid_hdg.output_limits = (-self.max_err, self.max_err)
 
-		# self.hdg_diff_output_DB = 1.0
-
 		## PID cross track error steering control
-		# self.kp_x = 2.5		# 15.0
-		# self.ki_x = 0.07
-		# self.kd_x = 0.0
 		self.setpoint_x = 0.0
 
 		self.max_x_err = 100.0	#2.0
@@ -126,9 +122,6 @@ class GPS_NAV(object):
 		self.pid_x.tunings = (self.cross_p, self.cross_i, self.cross_d)
 		self.pid_x.sample_time = 0.001
 		self.pid_x.output_limits = (-self.max_x_err, self.max_x_err)
-
-		# self.x_track_error_start = 0.3	#testcart 0.15		# min distance to start using x-track PID
-		# self.x_track_output_DB = 0.1
  
 		self.enable_update = True
 		################################ Dynamic Reconfigure #####################################
@@ -170,6 +163,7 @@ class GPS_NAV(object):
 		self.speed_target_list = []
 		self.delay_target_list = []
 		self.sbus_throttle_target_list = []
+		self.relay_target_list = []
 
 		if os.path.exists(self.mission_path):
 			print("Extract lat/lon from mission.txt")
@@ -183,6 +177,7 @@ class GPS_NAV(object):
 					line_list = line.split('\t')
 					self.speed_target_list.append(float(line_list[4]))
 					self.delay_target_list.append(float(line_list[5]))
+					self.relay_target_list.append(int(float(line_list[6])))
 					self.lat_target_list.append(float(line_list[8]))
 					self.lon_target_list.append(float(line_list[9]))
 
@@ -198,6 +193,7 @@ class GPS_NAV(object):
 			print("speed_target_list", self.speed_target_list)
 			print("delay_target_list", self.delay_target_list)
 			print("sbus_throttle_target_list", self.sbus_throttle_target_list)
+			print("relay_target_list", self.relay_target_list)
 
 	def generate_mission_file(self, current_wp, coord_frame, command, param1, param2, param3, param4, lat_list, lon_list, alt_list, autocontinue):
 		
@@ -240,6 +236,8 @@ class GPS_NAV(object):
 			self.hb_timestamp = time.time()
 
 	def param_callback(self, config):
+
+		print("Got new parameters")
 		# rospy.loginfo("Config set to {int_param}, {double_param}, {str_param}, {bool_param}".format(**config))
 		# rospy.loginfo("Config set to {p}, {i}, {d}".format(**config))
 		self.max_start_str = config["max_start_str"]
@@ -291,7 +289,7 @@ class GPS_NAV(object):
 		command_list = [16]*self.total_wps
 		param1_list = msg.speed.data	# speed list
 		param2_list = msg.delay.data	# delay list
-		param3_list = [0]*self.total_wps
+		param3_list = msg.relay.data # relay list
 		param4_list = [0]*self.total_wps
 		lat_list = msg.lat.data
 		lon_list = msg.lon.data
@@ -314,6 +312,7 @@ class GPS_NAV(object):
 			self.reply_wp_msg.lon.data = self.lon_target_list
 			self.reply_wp_msg.speed.data = self.speed_target_list
 			self.reply_wp_msg.delay.data = self.delay_target_list
+			self.reply_wp_msg.relay.data = self.relay_target_list
 
 			self.reply_wp_pub.publish(self.reply_wp_msg)
 
@@ -461,6 +460,11 @@ class GPS_NAV(object):
 
 		return out
 
+	def control_relay(self, flag):
+
+		self.jmoab_relay1_msg.data = flag
+		self.jmoab_relay1_pub.publish(self.jmoab_relay1_msg)
+
 	def loop(self):
 
 		rate = rospy.Rate(30)
@@ -542,6 +546,8 @@ class GPS_NAV(object):
 						end_flag = False
 						print("step: 1 | goal_ang: {:.2f} | diff_ang: {:.2f} | sign: {:.1f} | hdg: {:.2f}".format(goal_ang, diff_ang, sign, self.hdg))
 						step = 1
+
+						self.control_relay(self.relay_target_list[self.target_wp])
 
 					##########################################################
 					##### Step 2 turning until less than angle threshold #####
