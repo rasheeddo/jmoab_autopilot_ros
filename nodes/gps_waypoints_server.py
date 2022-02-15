@@ -91,6 +91,9 @@ if __name__ == "__main__":
 	cross_p = rosparam.get_param(sv_node+"/cross_p")
 	cross_i = rosparam.get_param(sv_node+"/cross_i")
 	cross_d = rosparam.get_param(sv_node+"/cross_d")
+	vel_p = rosparam.get_param(sv_node+"/vel_p")
+	vel_i = rosparam.get_param(sv_node+"/vel_i")
+	vel_d = rosparam.get_param(sv_node+"/vel_d")
 
 	use_heartbeat = rosparam.get_param(sv_node+"/use_heartbeat")
 
@@ -116,6 +119,9 @@ if __name__ == "__main__":
 	rospy.loginfo("cross_p : {:}".format(cross_p))
 	rospy.loginfo("cross_i : {:}".format(cross_i))
 	rospy.loginfo("cross_d : {:}".format(cross_d))
+	rospy.loginfo("vel_p : {:}".format(vel_p))
+	rospy.loginfo("vel_i : {:}".format(vel_i))
+	rospy.loginfo("vel_d : {:}".format(vel_d))
 	rospy.loginfo("use_heartbeat : {:}".format(use_heartbeat))
 
 	# server.update_configuration({"max_start_str":1094})
