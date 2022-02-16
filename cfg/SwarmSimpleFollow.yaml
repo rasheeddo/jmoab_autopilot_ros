@@ -1,0 +1,18 @@
+swarm_simple_server_node:
+  max_start_str: 1048
+  min_start_str: 1000
+  str_adj: 100
+  skid_adj: 80
+
+  thr_slowest: 1060
+ 
+  goal_dist_thresh: 1.5
+  goal_ang_thresh: 10.0
+
+  hdg_p: 3.0
+  hdg_i: 0.0
+  hdg_d: 0.0
+
+  vel_p: 1.3
+  vel_i: 0.5
+  vel_d: 0.0

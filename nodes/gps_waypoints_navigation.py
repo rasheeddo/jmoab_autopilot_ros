@@ -9,9 +9,10 @@ import os
 import argparse
 
 import time
-from std_msgs.msg import Float32MultiArray, Int32MultiArray, Bool, Int16, String, Int8, UInt16
+from std_msgs.msg import Float32MultiArray, Int32MultiArray, Bool, Int16, String, Int8, UInt16, UInt8
 from jmoab_autopilot_ros.msg import GoalWaypoints
 from sensor_msgs.msg import NavSatFix
+from geometry_msgs.msg import TwistWithCovarianceStamped
 import numpy as np
 from simple_pid import PID
 
@@ -22,6 +23,7 @@ class GPS_NAV(object):
 		################################ Init/Pub/Sub #####################################
 		rospy.init_node("gps_waypoints_autopilot_node", anonymous=True)
 		rospy.Subscriber("/ublox/fix", NavSatFix, self.gps_callback)
+		rospy.Subscriber("/ublox2/fix", NavSatFix, self.gps2_callback)
 		rospy.Subscriber("/jmoab_compass", Float32MultiArray, self.compass_callback)
 		rospy.Subscriber("/atcart_mode", Int8, self.atcart_mode_callback)
 		rospy.Subscriber("/sbus_rc_ch", Int32MultiArray, self.sbus_callback)
@@ -33,6 +35,10 @@ class GPS_NAV(object):
 		rospy.Subscriber("/heartbeat", Bool, self.heartbeat_callback)
 		rospy.Subscriber("/goal_waypoints", GoalWaypoints, self.goal_wp_callback)
 		rospy.Subscriber("/request_store_waypoints", Bool, self.request_wp_callback)
+
+		rospy.Subscriber("/obstacle_detection", UInt8, self.obst_detect_callback)
+
+		rospy.Subscriber("/ublox/fix_velocity", TwistWithCovarianceStamped, self.gps_vel_callback)
 
 		self.reply_wp_pub = rospy.Publisher("/reply_goal_waypoints", GoalWaypoints, queue_size=10)
 		self.reply_wp_msg = GoalWaypoints()
@@ -76,12 +82,23 @@ class GPS_NAV(object):
 		self.cross_p = rosparam.get_param(sv_node+"/cross_p")
 		self.cross_i = rosparam.get_param(sv_node+"/cross_i")
 		self.cross_d = rosparam.get_param(sv_node+"/cross_d")
+		self.vel_p = rosparam.get_param(sv_node+"/vel_p")
+		self.vel_i = rosparam.get_param(sv_node+"/vel_i")
+		self.vel_d = rosparam.get_param(sv_node+"/vel_d")
 		self.use_heartbeat = rosparam.get_param(sv_node+"/use_heartbeat")
 
 		########################### GPS Parameters ##########################  
 		self.lat = 0.0
 		self.lon = 0.0
 		self.hdg = 0.0
+
+		self.lat1 = 0.0
+		self.lon1 = 0.0
+
+		self.lat2 = 0.0
+		self.lon2 = 0.0
+
+		self.gps_abs_vel = 0.0
 
 		mission_name = "mission.txt"
 		# self.mission_path = os.path.join(jmoab_autopilot_ros_path, "waypoints", mission_name)
@@ -122,7 +139,13 @@ class GPS_NAV(object):
 		self.pid_x.tunings = (self.cross_p, self.cross_i, self.cross_d)
 		self.pid_x.sample_time = 0.001
 		self.pid_x.output_limits = (-self.max_x_err, self.max_x_err)
- 
+
+		self.pid_vel = PID(self.vel_p, self.vel_i, self.vel_d, setpoint=1.0)
+		self.pid_vel.tunings = (self.vel_p, self.vel_i, self.vel_d)
+		self.pid_vel.sample_time = 0.001
+		self.max_vel = 3.0
+		self.pid_vel.output_limits = (0.0, self.max_vel)
+
 		self.enable_update = True
 		################################ Dynamic Reconfigure #####################################
 		print("Wait for server node...")
@@ -145,6 +168,8 @@ class GPS_NAV(object):
 		self.sbus_max = 1680
 		self.vel_min = 0.2
 		self.vel_max = 2.2
+
+		self.obst_flag = False
 
 		self.update_local_param()
 
@@ -261,9 +286,13 @@ class GPS_NAV(object):
 		self.cross_p = config["cross_p"]
 		self.cross_i = config["cross_i"]
 		self.cross_d = config["cross_d"]
+		self.vel_p = config["vel_p"]
+		self.vel_i = config["vel_i"]
+		self.vel_d = config["vel_d"]
 		self.use_heartbeat = config["use_heartbeat"]
 		self.pid_hdg.tunings = (self.hdg_p, self.hdg_i, self.hdg_d)
 		self.pid_x.tunings = (self.cross_p, self.cross_i, self.cross_d)
+		self.pid_vel.tunings = (self.vel_p, self.vel_i, self.vel_d)
 
 		self.update_local_param()
 
@@ -318,8 +347,13 @@ class GPS_NAV(object):
 
 	def gps_callback(self, msg):
 
-		self.lat = msg.latitude
-		self.lon = msg.longitude
+		self.lat1 = msg.latitude
+		self.lon1 = msg.longitude
+
+	def gps2_callback(self, msg):
+
+		self.lat2 = msg.latitude
+		self.lon2 = msg.longitude
 
 	def compass_callback(self, msg):
 
@@ -339,6 +373,18 @@ class GPS_NAV(object):
 
 		if msg.data == True:
 			print("=============== got calib flag =================")
+
+	def gps_vel_callback(self, msg):
+		vel_x = msg.twist.twist.linear.x
+		vel_y = msg.twist.twist.linear.y
+		self.gps_abs_vel = np.sqrt(vel_x**2 + vel_y**2)
+
+	def obst_detect_callback(self, msg):
+		if msg.data == 2:
+			self.obst_flag = True
+			# print("WARNING: Obstacle on front or back!!")
+		else:
+			self.obst_flag = False
 
 	def vel2sbus(self, vel):
 
@@ -462,8 +508,9 @@ class GPS_NAV(object):
 
 	def control_relay(self, flag):
 
-		self.jmoab_relay1_msg.data = flag
-		self.jmoab_relay1_pub.publish(self.jmoab_relay1_msg)
+		for i in range(10):
+			self.jmoab_relay1_msg.data = flag
+			self.jmoab_relay1_pub.publish(self.jmoab_relay1_msg)
 
 	def loop(self):
 
@@ -493,17 +540,21 @@ class GPS_NAV(object):
 		cart_mode_check_lock = False
 		from_step = 0
 		pause_flag = False
-
+		from_obst_flag_detect = False
 		## for heartbeat
 		hb_trig_once = True
 
 		while not rospy.is_shutdown():
+
+			## average front/back gps to get somewhere in middle of the cart
+			self.lat = (self.lat1 + self.lat2)/2.0
+			self.lon = (self.lon1 + self.lon2)/2.0
 			
 			if (not self.hdg_calib_flag):
 				###########################################
 				### Robot will start once got auto_mode ###
 				###########################################
-				if (self.cart_mode == 2) and (not self.completed_flag):
+				if (self.cart_mode == 2) and (not self.completed_flag) and (not self.obst_flag):
 
 					######################################################
 					### In case of pause, these condition handle flags ###
@@ -525,11 +576,16 @@ class GPS_NAV(object):
 						self.pid_hdg.auto_mode = True
 						self.pid_x.auto_mode = True
 						cart_mode_check_lock = False
+						self.pid_vel.auto_mode = True
 						print("Resume step4")
 					elif (from_step == 5) and cart_mode_check_lock:
 						end_flag = True
 						cart_mode_check_lock = False
 						print("Resume step5")
+					elif from_obst_flag_detect:
+						self.control_relay(self.relay_target_list[self.target_wp])
+						self.pid_vel.auto_mode = True
+						from_obst_flag_detect = False
 
 					#######################################
 					##### Step 1 Get how much to turn #####
@@ -546,6 +602,9 @@ class GPS_NAV(object):
 						end_flag = False
 						print("step: 1 | goal_ang: {:.2f} | diff_ang: {:.2f} | sign: {:.1f} | hdg: {:.2f}".format(goal_ang, diff_ang, sign, self.hdg))
 						step = 1
+
+						self.pid_vel.auto_mode = False
+						self.pid_vel.setpoint = self.speed_target_list[self.target_wp]
 
 						self.control_relay(self.relay_target_list[self.target_wp])
 
@@ -592,6 +651,8 @@ class GPS_NAV(object):
 						step = 3
 						print("step: 3 | hdg: {:.2f}".format(self.hdg))
 						reset_tic = time.time()
+
+						self.pid_vel.auto_mode = True
 						
 
 					#############################################################
@@ -729,6 +790,7 @@ class GPS_NAV(object):
 						###########################################################################
 						## if very close distance, use very low speed, ignore user speed command ##
 						###########################################################################
+						output_pid_vel = self.pid_vel(self.gps_abs_vel)
 						if goal_dist < 2.0:
 							sbus_throttle = self.thr_slowest+20
 						else:
@@ -736,15 +798,19 @@ class GPS_NAV(object):
 								sbus_throttle = self.thr_slowest+20
 							else:
 								if self.speed_target_list[self.target_wp] != 0.0:
-									sbus_throttle = self.sbus_throttle_target_list[self.target_wp] #self.sbus_throttle_const
+									# sbus_throttle = self.sbus_throttle_target_list[self.target_wp] #self.sbus_throttle_const
+									sbus_throttle = int(self.map_with_limit(output_pid_vel, 0, self.max_vel, 1024, 1680))
 								else:
 									sbus_throttle = self.sbus_throttle_const
+
+			
+								# print("output_pid_vel: {:.2f} | thr_pid: {:d}".format(output_pid_vel, sbus_throttle_pid))
 
 						###############################################################
 						### Resest target heading again if cross track error is big ###
 						###############################################################
 						reset_timeout = time.time() - reset_tic
-						if (abs(x_track_error) > self.x_track_repose_dist) and (reset_timeout > 5.0):
+						if (abs(x_track_error) > self.x_track_repose_dist) and (reset_timeout > 2.0):
 							throttle_flag = False
 							get_goal_ang_once = True
 							reset_flag = True
@@ -758,8 +824,8 @@ class GPS_NAV(object):
 						####################################	
 						### Print out all necessary info ###
 						####################################
-						print("PID: {:} | tg_wp: {:d} | x: {:.2f} | rst_T/O: {:.2f} | rst_flg: {:} | AngAtoBot: {:.2f} | hdg: {:.2f} | AngAtoGoal: {:.2f} | hdgDff: {:.2f} | outPID: {:.2f} | goalDist: {:.2f} curDist: {:.2f} | str: {:d} | thr: {:d}".format(\
-							pid_mode, self.target_wp, x_track_error, reset_timeout, reset_flag, ang_A_to_bot, self.hdg, ang_A_to_goal, hdg_diff, OUTPUT_PID, goal_dist, cur_dist, sbus_steering, sbus_throttle))
+						print("PID: {:} | tg_wp: {:d} | x: {:.2f} | rst_T/O: {:.2f} | rst_flg: {:} | AngAtoBot: {:.2f} | hdg: {:.2f} | AngAtoGoal: {:.2f} | hdgDff: {:.2f} | outPID: {:.2f} | goalDist: {:.2f} curDist: {:.2f} | str: {:d} | thr: {:d} | vel: {:.2f} | vel_sp: {:.2f} | outPIDV: {:.2f}".format(\
+							pid_mode, self.target_wp, x_track_error, reset_timeout, reset_flag, ang_A_to_bot, self.hdg, ang_A_to_goal, hdg_diff, OUTPUT_PID, goal_dist, cur_dist, sbus_steering, sbus_throttle, self.gps_abs_vel, self.speed_target_list[self.target_wp], output_pid_vel))
 
 
 						## update cur_dist with current lat/lon compare to start lat/lon
@@ -787,6 +853,7 @@ class GPS_NAV(object):
 						print("Delay as {:.2f} seconds".format(self.delay_target_list[self.target_wp]))
 						time.sleep(self.delay_target_list[self.target_wp])
 						self.target_wp += 1
+						self.pid_vel.auto_mode = False 
 
 					######################################################################
 					##### Step 6 check every time that target_wp is completed or not #####
@@ -829,6 +896,7 @@ class GPS_NAV(object):
 						from_step = 4
 						self.pid_hdg.auto_mode = False
 						self.pid_x.auto_mode = False
+						self.pid_vel.auto_mode = False
 						print("Stop at step4")
 					elif end_flag:
 						end_flag = False
@@ -875,6 +943,16 @@ class GPS_NAV(object):
 						self.get_target_points()
 						self.target_wp = 0
 						self.got_new_wps = False
+
+					if (self.obst_flag):
+						## Trig only one time
+						if from_obst_flag_detect == False:
+							self.control_relay(False)
+							self.pid_vel.auto_mode = False
+							print("Detected obstacle....")
+						from_obst_flag_detect = True
+						
+
 
 					self.sbus_cmd.data = [self.sbus_steering_mid, self.sbus_throttle_mid]
 

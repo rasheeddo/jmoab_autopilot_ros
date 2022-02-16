@@ -1,0 +1,19 @@
+<launch>
+   <group ns="group1">
+    <arg name="group_ns" value="group1" />
+    <arg name="master_ns" value="robot1" />
+    <arg name="follower_ns" value="robot2" />
+    <rosparam file="$(find jmoab_autopilot_ros)/cfg/SwarmSimpleFollow.yaml" command="load"/>
+    <node pkg="jmoab_autopilot_ros" name="swarm_simple_follower_node" type="swarm_simple_follower.py" args="--load_param_local 0 --master_ns $(arg master_ns) --follower_ns $(arg follower_ns)" output="screen" />
+  </group>
+
+  <group ns="group2">
+    <arg name="group_ns" value="group2" />
+    <arg name="master_ns" value="robot2" />
+    <arg name="follower_ns" value="robot3" />
+    <rosparam file="$(find jmoab_autopilot_ros)/cfg/SwarmSimpleFollow.yaml" command="load"/>
+    <node pkg="jmoab_autopilot_ros" name="swarm_simple_follower_node" type="swarm_simple_follower.py" args="--load_param_local 0 --master_ns $(arg master_ns) --follower_ns $(arg follower_ns)" output="screen" />
+  </group>
+
+
+</launch>

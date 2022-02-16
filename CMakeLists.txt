@@ -93,6 +93,7 @@ find_package(catkin REQUIRED COMPONENTS
    cfg/GpsWaypoints.cfg
    cfg/GreenhouseNav.cfg
    cfg/LidarObstacleDetection.cfg
+   cfg/SwarmSimpleFollow.cfg
  )
 
 
