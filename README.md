@@ -10,7 +10,11 @@ It could run with the real actual robot with JMOAB and also in simulation world 
 
 Currently, it supports an autonomous drive as following.
 
-- GPS Waypoints Navigation
+- [GPS waypoints navigation](https://github.com/rasheeddo/jmoab_autopilot_ros#gps-waypoints-navigation)
+
+- [Greenhuse navigation](https://github.com/rasheeddo/jmoab_autopilot_ros#greenhouse-navigation)
+
+- [Swarm control](https://github.com/rasheeddo/jmoab_autopilot_ros#swarm)
 
 ## GPS Waypoints Navigation
 
