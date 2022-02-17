@@ -157,3 +157,79 @@ The parameters are showing,
 
 ![](images/greenhouse_rqt_reconfigure.png)
 
+
+## Swarm
+
+We can control multiple robots in the same time!
+
+### Simple-Follower
+
+This is an example of simple trailer follower of three bots, the first bot is master and controlled by user. The second follows the first bot, and the third follows the second.
+
+![](images/multi_robots.png)
+
+It has been simulated on [atcart_basic_gazebo](https://github.com/rasheeddo/atcart_basic_gazebo#multi-robots) model.
+
+![](images/swarm_test.png)
+
+please check on [this video](https://youtu.be/W5WBQbkODnA) for a demonstraion.
+
+#### Run
+
+In case of tuning the robot parameters, so just simple one-to-one swarm follower
+
+```sh
+# I assume that you have launch the multi robots model from atcart_basis_gazebo
+# 1st terminal, swarm parameters server
+rosrun jmoab_autopilot_ros  swarm_simple_follow_server.py --param_file path/to/your/param_file
+
+# 2nd terminal, run the one to one program
+# robot1 is master, you control it.
+# robot2 is follower
+cd ~/catkin_ws/src/jmoab_autopilot_ros/nodes
+
+python swarm_simple_follwer.py --param_file  path/to/your/param_file --master_ns robot1 --follower_ns robot2
+```
+
+In case of you satisfied with parameters, and want to expand the robot
+
+```sh
+# I assume that you have launch the multi robots model from atcart_basis_gazebo
+# go to launch directory fist, and open the file swarm_simple_follower.launch
+cd ~/catkin_ws/src/jmoab_autopilot_ros/launch
+# you will see two group, each group has unique name and which master and follower, 
+# and it's using the same swarm_simple_follower.py
+# if you would like to have more bots, please feel free to copy the group and change the name inside.
+
+roslaunch jmoab_autopilot_ros swarm_simple_follow_server.launch
+_ 
+```
+
+#### Parameters
+
+- max_start_str: normally it is default as 1048
+
+- min_start_str: normally it is default as 1000
+
+- str_adj: how much the range of steering adjustment in PID
+
+- skid_adj: how much the range of skidding will be performed
+
+- thr_slowest: the slowest throttle to make the cart move in safety speed
+
+- goal_dist_thresh: how far you want the bot to keep dist away when close to master robot
+
+- goal_ang_thresh: a threshold angle to consider the bot it pointing correctly to master
+
+- hdg_p: P gain control of heading PID controller
+
+- hdg_i: I gain control of heading PID controller
+
+- hdg_d: D gain control of heading PID controller
+
+- vel_p: P gain control of velocity PID controller
+
+- vel_i: I gain control of velocity PID controller
+
+- vel_d: D gain control of velocity PID controller
+
