@@ -150,78 +150,28 @@ class GPS_NAV(object):
 
 		########################### Pub/Sub Topics ##########################
 
-		if NS is None:
-			gps_topic = "/ublox/fix"
-			gps2_topic = "/ublox/fix"
-			compass_topic = "/jmoab_compass"
-			atcart_mode_topic = "/atcart_mode"
-			hb_topic = "/heartbeat"
-			goal_wp_topic = "/goal_waypoints"
-			rq_goal_wp_topic = "/request_store_waypoints"
-			obs_detect_topic = "/obstacle_detection"
-			vel_topic = "/ublox/fix_velocity"
-			sbus_cmd_topic = "/sbus_cmd"
-			rep_goal_wp_topic = "/reply_goal_waypoints"
-			arr_wp_topic = "/arrived_waypoints"
-			atcart_mode_cmd_topic = "/atcart_mode_cmd"
-			relay_topic = "/jmoab_relay1"
-			mis_com_topic = "/mission_completed"
-		else:
-			if NS.startswith("/"):
-				gps_topic = NS + "/ublox/fix"
-				gps2_topic = NS + "/ublox/fix"
-				compass_topic = NS + "/jmoab_compass"
-				atcart_mode_topic = NS + "/atcart_mode"
-				hb_topic = NS + "/heartbeat"
-				goal_wp_topic = NS + "/goal_waypoints"
-				rq_goal_wp_topic = NS + "/request_store_waypoints"
-				obs_detect_topic = NS + "/obstacle_detection"
-				vel_topic = NS + "/ublox/fix_velocity"
-				sbus_cmd_topic = NS + "/sbus_cmd"
-				rep_goal_wp_topic = NS + "/reply_goal_waypoints"
-				arr_wp_topic = NS + "/arrived_waypoints"
-				atcart_mode_cmd_topic = NS + "/atcart_mode_cmd"
-				relay_topic = NS + "/jmoab_relay1"
-				mis_com_topic = NS + "/mission_completed"
-			else:
-				gps_topic = "/" + NS + "/ublox/fix"
-				gps2_topic = "/" + NS + "/ublox/fix"
-				compass_topic = "/" + NS + "/jmoab_compass"
-				atcart_mode_topic = "/" + NS + "/atcart_mode"
-				hb_topic = "/" + NS + "/heartbeat"
-				goal_wp_topic = "/" + NS + "/goal_waypoints"
-				rq_goal_wp_topic = "/" + NS + "/request_store_waypoints"
-				obs_detect_topic = "/" + NS + "/obstacle_detection"
-				vel_topic = "/" + NS + "/ublox/fix_velocity"
-				sbus_cmd_topic = "/" + NS + "/sbus_cmd"
-				rep_goal_wp_topic = "/" + NS + "/reply_goal_waypoints"
-				arr_wp_topic = "/" + NS + "/arrived_waypoints"
-				atcart_mode_cmd_topic = "/" + NS + "/atcart_mode_cmd"
-				relay_topic = "/" + NS + "/jmoab_relay1"
-				mis_com_topic = "/" + NS + "/mission_completed"
-
-		rospy.Subscriber(gps_topic, NavSatFix, self.gps_callback)
-		rospy.Subscriber(gps2_topic, NavSatFix, self.gps2_callback)
-		rospy.Subscriber(compass_topic, Float32MultiArray, self.compass_callback)
-		rospy.Subscriber(atcart_mode_topic, Int8, self.atcart_mode_callback)
+		rospy.Subscriber(self.namespace_attaching(NS, "/ublox/fix"), NavSatFix, self.gps_callback)
+		rospy.Subscriber(self.namespace_attaching(NS, "/ublox2/fix"), NavSatFix, self.gps2_callback)
+		rospy.Subscriber(self.namespace_attaching(NS, "/jmoab_compass"), Float32MultiArray, self.compass_callback)
+		rospy.Subscriber(self.namespace_attaching(NS, "/atcart_mode"), Int8, self.atcart_mode_callback)
 		# rospy.Subscriber("/hdg_calib_flag", Bool, self.hdg_calib_flag_callback)
-		rospy.Subscriber(hb_topic, Bool, self.heartbeat_callback)
-		rospy.Subscriber(goal_wp_topic, GoalWaypoints, self.goal_wp_callback)
-		rospy.Subscriber(rq_goal_wp_topic, Bool, self.request_wp_callback)
-		rospy.Subscriber(obs_detect_topic, UInt8, self.obst_detect_callback)
-		rospy.Subscriber(vel_topic, TwistWithCovarianceStamped, self.gps_vel_callback)
+		rospy.Subscriber(self.namespace_attaching(NS, "/heartbeat"), Bool, self.heartbeat_callback)
+		rospy.Subscriber(self.namespace_attaching(NS, "/goal_waypoints"), GoalWaypoints, self.goal_wp_callback)
+		rospy.Subscriber(self.namespace_attaching(NS, "/request_store_waypoints"), Bool, self.request_wp_callback)
+		rospy.Subscriber(self.namespace_attaching(NS, "/obstacle_detection"), UInt8, self.obst_detect_callback)
+		rospy.Subscriber(self.namespace_attaching(NS, "/ublox/fix_velocity"), TwistWithCovarianceStamped, self.gps_vel_callback)
 
-		self.sbus_cmd_pub = rospy.Publisher(sbus_cmd_topic, Int32MultiArray, queue_size=10)
+		self.sbus_cmd_pub = rospy.Publisher(self.namespace_attaching(NS, "/sbus_cmd"), Int32MultiArray, queue_size=10)
 		self.sbus_cmd = Int32MultiArray()
-		self.reply_wp_pub = rospy.Publisher(rep_goal_wp_topic, GoalWaypoints, queue_size=10)
+		self.reply_wp_pub = rospy.Publisher(self.namespace_attaching(NS, "/reply_goal_waypoints"), GoalWaypoints, queue_size=10)
 		self.reply_wp_msg = GoalWaypoints()
-		self.arrived_wp_pub = rospy.Publisher(arr_wp_topic, UInt16, queue_size=10)
+		self.arrived_wp_pub = rospy.Publisher(self.namespace_attaching(NS, "/arrived_waypoints"), UInt16, queue_size=10)
 		self.arrived_wp_msg = UInt16()
-		self.atcart_mode_cmd_pub = rospy.Publisher(atcart_mode_cmd_topic, Int8, queue_size=10)
+		self.atcart_mode_cmd_pub = rospy.Publisher(self.namespace_attaching(NS, "/atcart_mode_cmd"), Int8, queue_size=10)
 		self.atcart_mode_cmd_msg = Int8()
-		self.jmoab_relay1_pub = rospy.Publisher(relay_topic, Bool, queue_size=10)
+		self.jmoab_relay1_pub = rospy.Publisher(self.namespace_attaching(NS, "/jmoab_relay1"), Bool, queue_size=10)
 		self.jmoab_relay1_msg = Bool()
-		self.mission_completed_pub = rospy.Publisher(mis_com_topic, Bool, queue_size=10)
+		self.mission_completed_pub = rospy.Publisher(self.namespace_attaching(NS, "/mission_completed"), Bool, queue_size=10)
 		self.mission_completed_msg = Bool()
 
 		########################### Start ########################## 
@@ -230,6 +180,16 @@ class GPS_NAV(object):
 		time.sleep(1)
 		self.loop()
 		rospy.spin()
+
+	def namespace_attaching(self, NS, topic_name):
+		if NS is None:
+			return topic_name
+		else:
+			if NS.startswith("/"):
+				topic_name = NS + topic_name
+			else:
+				topic_name = "/" + NS + topic_name
+			return topic_name
 
 	def get_target_points(self):
 
