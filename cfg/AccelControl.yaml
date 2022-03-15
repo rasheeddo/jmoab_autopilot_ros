@@ -1,0 +1,10 @@
+accel_control_server_node:
+  pwm_mid: 1450
+  pwm_max_limit: 1920
+  pwm_adj: 400
+
+  vel_diff_thresh: 0.087 # rad/s
+  vel_setpoint: 1.047 # rad/s
+  vel_p: 100.0
+  vel_i: 10.0
+  vel_d: 0.0

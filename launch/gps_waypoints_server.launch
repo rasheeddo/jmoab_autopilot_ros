@@ -1,0 +1,11 @@
+<launch>
+
+  <arg name="ns" default="robot1"/>
+  <arg name="param_file" default="$(find jmoab_autopilot_ros)/cfg/GpsWaypoints.yaml"/>
+
+   <group ns="$(arg ns)">
+    <rosparam file="$(arg param_file)" command="load"/>
+    <node pkg="jmoab_autopilot_ros" name="gps_waypoints_server" type="gps_waypoints_server.py" args="--param_file $(arg param_file)" output="screen" />
+  </group>
+
+</launch>

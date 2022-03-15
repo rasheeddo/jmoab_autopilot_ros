@@ -9,6 +9,7 @@ import os
 import yaml
 import argparse
 import sys
+import time
 
 def callback(config, level):
 	# rospy.loginfo("""Reconfigure Request: {int_param}, {double_param},{str_param}, {bool_param}""".format(**config))
@@ -38,16 +39,19 @@ if __name__ == "__main__":
 	rospy.init_node("gps_waypoints_server_node", anonymous = False)
 	rospy.loginfo("Start gps_waypoints_server_node")
 
-	server = Server(GpsWaypointsConfig, callback)
-	sv_node = "gps_waypoints_server_node"
-
 	parser = argparse.ArgumentParser(description='GPS Waypoints Server node')
 	parser.add_argument('--param_file',
 						help="A file path of GpsWaypoints.yaml, default is the one in cfg/")
+	parser.add_argument('--ns',
+						help="namespace of the robot")
+	parser.add_argument('--load_param_local',
+						help='0 if want to load param from launch file, 1 if load param inside the script, default is 1')
 
 	#args = parser.parse_args()
 	args = parser.parse_args(rospy.myargv()[1:])	# to make it work on launch file
 	param_file = args.param_file
+	ns = args.ns
+	load_param_local = args.load_param_local
 
 	if param_file is None:
 		print("Use jmoab_autopilot_ros/cfg/GpsWaypoints.yaml")
@@ -57,13 +61,38 @@ if __name__ == "__main__":
 		yaml_path = os.path.join(jmoab_autopilot_ros_path, "cfg", yaml_name)
 	else:
 		yaml_path = param_file
-		
-	
-	# https://answers.ros.org/question/169866/load-yaml-with-code/
-	# load yaml file to rosparam server without running server on python
-	f = open(yaml_path, 'r')
-	yamlfile = yaml.load(f)
-	rosparam.upload_params("/", yamlfile)
+
+	if ns is not None:
+		print("Use namespace as {:}".format(ns))
+	else:
+		print("No namespace, using default")
+
+	if (load_param_local is None) or (int(load_param_local) == 1):
+		load_param = True
+		rospy.loginfo("Loading param from python") 
+	elif int(load_param_local) == 0:
+		load_param = False
+		rospy.loginfo("Not loading param from python") 
+	else:
+		print("Please provide only 0 or 1 on --load_param_local")
+		quit()
+
+
+	server = Server(GpsWaypointsConfig, callback)
+	sv_node = "gps_waypoints_server_node"
+
+	# if ns is None:
+	# 	sv_node = "gps_waypoints_server_node"
+	# else:
+	# 	sv_node = ns + "/gps_waypoints_server_node"
+
+	if load_param:
+		# https://answers.ros.org/question/169866/load-yaml-with-code/
+		# load yaml file to rosparam server without running server on python
+		f = open(yaml_path, 'r')
+		yamlfile = yaml.load(f)
+		rosparam.upload_params("/", yamlfile)
+	# time.sleep(2)
 
 	# get parameter from rosparam server that we just loaded above
 	max_start_str = rosparam.get_param(sv_node+"/max_start_str")
