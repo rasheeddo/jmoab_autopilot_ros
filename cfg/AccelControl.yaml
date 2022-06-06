@@ -4,7 +4,7 @@ accel_control_server_node:
   pwm_adj: 400
 
   vel_diff_thresh: 0.087 # rad/s
-  vel_setpoint: 1.047 # rad/s
-  vel_p: 100.0
-  vel_i: 10.0
-  vel_d: 0.0
+  vel_setpoint: 2.61 #1.047 # rad/s
+  vel_p: 30.0
+  vel_i: 5.0
+  vel_d: 5.0

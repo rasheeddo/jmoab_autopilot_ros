@@ -95,6 +95,8 @@ find_package(catkin REQUIRED COMPONENTS
    cfg/LidarObstacleDetection.cfg
    cfg/SwarmSimpleFollow.cfg
    cfg/AccelControl.cfg
+   cfg/WallFollow.cfg
+   cfg/HeadingControl.cfg
  )
 
 

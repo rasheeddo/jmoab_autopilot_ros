@@ -1,0 +1,13 @@
+wall_follow_server_node:
+  str_adj: 100
+  wf_p: 60.0
+  wf_i: 2.0
+  wf_d: 30.0
+  skid_adj: 100
+  skid_p: 1.0
+  skid_i: 0.0
+  skid_d: 0.0
+  vel_setpoint: 0.5 #m/s
+  vel_p: 15.0
+  vel_i: 10.0
+  vel_d: 1.0
